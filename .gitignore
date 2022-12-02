@@ -140,3 +140,5 @@ dmypy.json
 
 #exclude all test files
 **test*
+#test features
+garbage.py

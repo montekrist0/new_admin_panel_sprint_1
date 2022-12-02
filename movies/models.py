@@ -2,6 +2,7 @@ import uuid
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class TimeStampedMixin(models.Model):
@@ -9,7 +10,6 @@ class TimeStampedMixin(models.Model):
     modified = models.DateTimeField(auto_now=True)
 
     class Meta:
-        # Этот параметр указывает Django, что этот класс не является представлением таблицы
         abstract = True
 
 
@@ -20,22 +20,49 @@ class UUIDMixin(models.Model):
         abstract = True
 
 
-# Create your models here.
 class Genre(UUIDMixin, TimeStampedMixin):
     def __str__(self):
         return self.name
 
-    # Первым аргументом обычно идёт человекочитаемое название поля
-    name = models.CharField('name', max_length=255)
-    # blank=True делает поле необязательным для заполнения.
-    description = models.TextField('description', blank=True)
+    name = models.TextField(_('name'), unique=True)
+    description = models.TextField(_('description'), blank=True)
 
     class Meta:
-        # Ваши таблицы находятся в нестандартной схеме. Это нужно указать в классе модели
         db_table = "content\".\"genre"
-        # Следующие два поля отвечают за название модели в интерфейсе
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
+
+
+class Person(UUIDMixin, TimeStampedMixin):
+    def __str__(self):
+        return self.full_name
+
+    full_name = models.TextField(_('name'))
+
+    class Meta:
+        db_table = "content\".\"person"
+        verbose_name = 'Актер'
+        verbose_name_plural = 'Актеры'
+
+
+class PersonFilmwork(UUIDMixin):
+    film_work = models.ForeignKey('Filmwork', on_delete=models.CASCADE)
+    person = models.ForeignKey('Person', on_delete=models.CASCADE)
+    role = models.TextField(_('role'))
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "content\".\"person_film_work"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['film_work', 'person', 'role'],
+                name='film_work_person_idx',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['film_work']),
+            models.Index(fields=['person']),
+        ]
 
 
 class Filmwork(UUIDMixin, TimeStampedMixin):
@@ -43,29 +70,40 @@ class Filmwork(UUIDMixin, TimeStampedMixin):
         return self.title
 
     class FilmType(models.TextChoices):
-        movie = 'movie'
-        tv_show = 'tv_show'
+        movie = ('movie', _('Фильм'))
+        tv_show = ('tv_show', _('Шоу'))
 
-    title = models.CharField('name', max_length=255)
-    description = models.TextField('description', blank=True)
-    creation_date = models.DateField('creation_date', blank=True)
+    title = models.TextField(_('name'))
+    description = models.TextField(_('description'), blank=True)
+    creation_date = models.DateField(_('creation_date'), blank=True)
     rating = models.FloatField(
-        'rating',
+        _('rating'),
         blank=True,
         validators=[
             MinValueValidator(0),
             MaxValueValidator(100),
         ],
     )
-    type = models.CharField(max_length=7, choices=FilmType.choices)
+    type = models.CharField(_('type'), max_length=7, choices=FilmType.choices)
     genres = models.ManyToManyField(Genre, through='GenreFilmwork')
+    persons = models.ManyToManyField(Person, through='PersonFilmwork')
+
+    def get_genres(self):
+        return ", ".join([str(genre) for genre in self.genres.all()])
+    get_genres.short_description = _('genres')
+
+    def get_persons(self):
+        return ", ".join([str(person) for person in self.persons.all()])
+    get_persons.short_description = _('actors')
 
     class Meta:
-        # Ваши таблицы находятся в нестандартной схеме. Это нужно указать в классе модели
         db_table = "content\".\"film_work"
-        # Следующие два поля отвечают за название модели в интерфейсе
         verbose_name = 'Кинопроизведение'
         verbose_name_plural = 'Кинопроизведения'
+        indexes = [
+            models.Index(fields=['title']),
+            models.Index(fields=['creation_date', 'rating']),
+        ]
 
 
 class GenreFilmwork(UUIDMixin):
@@ -75,17 +113,7 @@ class GenreFilmwork(UUIDMixin):
 
     class Meta:
         db_table = "content\".\"genre_film_work"
-
-
-class Person(UUIDMixin, TimeStampedMixin):
-    def __str__(self):
-        return self.full_name
-
-    full_name = models.CharField('name', max_length=255)
-
-
-class PersonFilmwork(UUIDMixin):
-    film_work = models.ForeignKey('Filmwork', on_delete=models.CASCADE)
-    person = models.ForeignKey('Person', on_delete=models.CASCADE)
-    role = models.TextField('role', null=True)
-    created = models.DateTimeField(auto_now_add=True)
+        indexes = [
+            models.Index(fields=['film_work']),
+            models.Index(fields=['genre']),
+        ]

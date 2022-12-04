@@ -1,7 +1,7 @@
 from django.contrib import admin
 
-from .custom_filters import CreationDateListFilter, RatingListFilter,\
-    TypeListFilter
+from .custom_filters import (CreationDateListFilter, RatingListFilter,
+                             TypeListFilter)
 from .models import Filmwork, Genre, GenreFilmwork, Person, PersonFilmwork
 
 

@@ -128,8 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-.python-version
-
 #macos system files
 .DS_Store
 
@@ -139,6 +137,9 @@ dmypy.json
 **.sql
 
 #exclude all test files
-**test*
-#test features
-garbage.py
+sqlite_to_postgres/test.py
+sqlite_to_postgres/test_movies_database.dll
+sqlite_to_postgres/sqlite_test.py
+sqlite_to_postgres/postgre_test.py
+/sqlite_to_postgres/archive.py
+/db.sqlite

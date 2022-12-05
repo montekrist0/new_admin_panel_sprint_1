@@ -54,6 +54,8 @@ CREATE INDEX IF NOT EXISTS creation_date_and_rating_at_film_work_idx ON content.
 CREATE INDEX IF NOT EXISTS film_work_id_at_genre_film_work_idx ON content.genre_film_work (film_work_id);
 CREATE INDEX IF NOT EXISTS genre_id_at_genre_film_work_idx ON content.genre_film_work (genre_id);
 
+CREATE INDEX IF NOT EXISTS genre_film_work_unique_idx ON content.genre_film_work (film_work_id, genre_id);
+
 CREATE INDEX IF NOT EXISTS film_work_id_at_person_film_work_idx ON content.person_film_work (film_work_id);
 CREATE INDEX IF NOT EXISTS person_id_at_person_film_work_idx ON content.person_film_work (person_id);
 

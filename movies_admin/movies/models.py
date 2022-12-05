@@ -113,6 +113,12 @@ class GenreFilmwork(UUIDMixin):
 
     class Meta:
         db_table = "content\".\"genre_film_work"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['film_work', 'genre'],
+                name='genre_film_work_unique_idx',
+            ),
+        ]
         indexes = [
             models.Index(fields=['film_work']),
             models.Index(fields=['genre']),

@@ -9,6 +9,7 @@ import psycopg2
 from data_models import FilmWork, Genre, GenreFilmWork, Person, PersonFilmWork
 from dotenv import load_dotenv
 from psycopg2.extensions import connection as _connection
+from psycopg2.extensions import cursor as _cursor
 from psycopg2.extras import DictCursor
 
 current_filename = os.path.basename(__file__).rsplit('.', 1)[0]
@@ -59,16 +60,13 @@ POSTGRES_TABLES_FIELDS = {
 
 class PostgresSaver:
     """Saver in PostgreSQL DB."""
-    def __init__(self, pg_conn: _connection):
+    def __init__(self, pg_conn: _connection, pg_cursor: _cursor):
         self.pg_conn = pg_conn
-        self.cursor = self.pg_conn.cursor()
-        self.cursor.execute("""
+        self.pg_cursor = pg_cursor
+        self.pg_cursor.execute("""
         SET TIMEZONE TO 'UTC';
         """)
         self.pg_conn.commit()
-
-    def __del__(self):
-        self.cursor.close()
 
     def save_data_in_table(self, data: list, table_name: str):
         """Execute insert query in PostgreSQL DB.
@@ -92,7 +90,7 @@ class PostgresSaver:
         placeholders = ','.join('%s' for _ in range(number_of_params))
         fields_for_insert = POSTGRES_TABLES_FIELDS[table_name]
         args = ','.join(
-            self.cursor.mogrify(
+            self.pg_cursor.mogrify(
                 f'({placeholders})', astuple(item)
             ).decode() for item in data
         )
@@ -109,7 +107,7 @@ class PostgresSaver:
         VALUES{args}
         {restriction}
         """
-        self.cursor.execute(query)
+        self.pg_cursor.execute(query)
 
 
 class SQLiteExtractor:
@@ -147,10 +145,12 @@ class SQLiteExtractor:
             rows = self.cursor.fetchmany(batch_size)
 
 
-def load_from_sqlite(connection: sqlite3.Connection, pg_conn: _connection):
+def load_from_sqlite(
+        connection: sqlite3.Connection,
+        pg_conn: _connection, pg_cursor: _cursor):
     """Main method for uploading data from SQLite to Postgres"""
 
-    postgres_saver = PostgresSaver(pg_conn)
+    postgres_saver = PostgresSaver(pg_conn, pg_cursor)
     sqlite_extractor = SQLiteExtractor(connection)
 
     for table_name in TABLE_CLASS:
@@ -196,5 +196,5 @@ if __name__ == '__main__':
             psycopg2.connect(
                 **dsl,
                 cursor_factory=DictCursor
-            ) as pg_conn:
-        load_from_sqlite(sqlite_conn, pg_conn)
+            ) as pg_conn, pg_conn.cursor() as pg_cursor:
+        load_from_sqlite(sqlite_conn, pg_conn, pg_cursor)

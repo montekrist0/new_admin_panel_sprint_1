@@ -1,5 +1,4 @@
 Django==3.2
-psycopg2==2.9.5
 psycopg2_binary==2.9
 python-dotenv==0.21.0
 django-split-settings==1.2.0
